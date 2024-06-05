@@ -543,6 +543,11 @@ impl Inner {
             rotation,
             max_files,
         };
+
+        // Prune the log files on startup, for apps that don't run for an entire
+        // log rotation period.
+        inner.prune_old_logs();
+
         let filename = inner.join_date(&now);
         let writer = RwLock::new(create_writer(inner.log_directory.as_ref(), &filename)?);
         Ok((inner, writer))

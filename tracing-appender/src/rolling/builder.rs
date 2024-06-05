@@ -187,11 +187,14 @@ impl Builder {
         Self { suffix, ..self }
     }
 
-    /// Keeps the last `n` log files on disk.
+    /// Keep no more than `n` log files on disk. Note that the files can
+    /// sometimes be pruned to one fewer than the specified max, so if you must
+    /// keep at least `m` files, then `n = m + 1`.
     ///
-    /// When a new log file is created, if there are `n` or more
-    /// existing log files in the directory, the oldest will be deleted.
-    /// If no value is supplied, the `RollingAppender` will not remove any files.
+    /// When a `RollingAppender` is created or a new log file is created, if
+    /// there are `n` or more existing log files in the directory, the oldest
+    /// will be deleted. If no value is supplied, the `RollingAppender` will not
+    /// remove any files.
     ///
     /// Files are considered candidates for deletion based on the following
     /// criteria:
