@@ -568,7 +568,15 @@ impl Inner {
         }
     }
 
-    fn prune_old_logs(&self, max_files: usize) {
+    /// Deletes old log files that match the configured log file name format,
+    /// retaining the newest `max_files - 1` log files (by creation date).
+    /// If no max_files limit was configured, this method does nothing.
+    fn prune_old_logs(&self) {
+        let Some(max_files) = self.max_files else {
+            return;
+        };
+        let files_to_keep = max_files - 1;
+
         let files = fs::read_dir(&self.log_directory).map(|dir| {
             dir.filter_map(|entry| {
                 let entry = entry.ok()?;
@@ -615,15 +623,15 @@ impl Inner {
                 return;
             }
         };
-        if files.len() < max_files {
+        if files.len() <= files_to_keep {
             return;
         }
 
         // sort the files by their creation timestamps.
         files.sort_by_key(|(_, created_at)| *created_at);
 
-        // delete files, so that (n-1) files remain, because we will create another log file
-        for (file, _) in files.iter().take(files.len() - (max_files - 1)) {
+        // Keep exactly N files
+        for (file, _) in files.iter().take(files.len() - files_to_keep) {
             if let Err(error) = fs::remove_file(file.path()) {
                 eprintln!(
                     "Failed to remove old log file {}: {}",
@@ -637,9 +645,7 @@ impl Inner {
     fn refresh_writer(&self, now: OffsetDateTime, file: &mut File) {
         let filename = self.join_date(&now);
 
-        if let Some(max_files) = self.max_files {
-            self.prune_old_logs(max_files);
-        }
+        self.prune_old_logs();
 
         match create_writer(&self.log_directory, &filename) {
             Ok(new_file) => {
